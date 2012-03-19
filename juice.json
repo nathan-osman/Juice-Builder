@@ -1,0 +1,8 @@
+{
+    "options": {
+        "print-integer": { "value": false, "help": "prints an integer upon startup" }
+    },
+    "files": [
+        { "filename": "sample.js", "output": "sample.min.js" }
+    ]
+}
