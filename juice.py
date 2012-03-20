@@ -66,6 +66,9 @@ class FileStream:
 # This class loads the project and builds the files
 class JuiceBuilder:
     
+    # Valid commands
+    commands = ['if', 'else', 'endif', 'include',]
+    
     # Precompiled regex for matching command line arguments
     arg_regex = compile(r'^--(enable|disable)-(.*)$')
     
@@ -130,24 +133,33 @@ class JuiceBuilder:
         stack = []
         for t in input:
             stack.append(t)
-            if stack[-1]['type'] == FileStream.TokenCommand and stack[-1]['command'] == 'endif':
-                stack.pop()
-                self._pop_until(stack, ('if', 'else'))
-                true_output = stack.pop()
-                false_output = None
-                if stack[-1]['type'] == FileStream.TokenCommand and stack[-1]['command'] == 'else':
-                    stack.pop()
-                    self._pop_until(stack, ('if',))
-                    false_output = true_output
+            if stack[-1]['type'] == FileStream.TokenCommand:
+                cmd = stack[-1]['command'].lower()
+                if not cmd in self.commands:
+                    raise Exception('Command "%s" not recognized.' % cmd)
+                if cmd == 'endif':
+                    stack.pop() # discard the endif
+                    self._pop_until(stack, ('if', 'else'))
                     true_output = stack.pop()
-                c = stack.pop()
-                if self._is_option_set(c['parameter']):
-                    stack.append(true_output)
-                elif not false_output == None:
-                    stack.append(false_output)
+                    false_output = None
+                    if stack[-1]['type'] == FileStream.TokenCommand and stack[-1]['command'] == 'else':
+                        stack.pop() # discard the else
+                        self._pop_until(stack, ('if',))
+                        false_output = true_output
+                        true_output = stack.pop()
+                    c = stack.pop()
+                    if self._is_option_set(c['parameter']):
+                        stack.append(true_output)
+                    elif not false_output == None:
+                        stack.append(false_output)
+                elif cmd == 'include':
+                    stack.pop() # just ignore it for now
         # Join and write the minified output
         output = ''
         for t in stack:
+            # If this token isn't a content token, it is horribly out of place
+            if not t['type'] == FileStream.TokenContent:
+                raise Exception('unexpected command "%s" encountered' % t['command'])
             output += t['content']
         print 'Minifying "%s".' % output_fn
         f = open(output_fn, 'w')

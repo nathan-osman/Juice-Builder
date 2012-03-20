@@ -18,6 +18,8 @@
 }</code></pre>
 <p>The above <code>juice.json</code> will look for a file <code>src/sample.js</code>, parse the Juice commands in the file, minify the file (using <a href="http://closure-compiler.appspot.com">Google's Closure Compiler</a>), and write the output to <code>out/sample.min.js</code>. All of this can be done using the following command:</p>
 <pre><code>python juice.py</code></pre>
+<p>If you wanted to enable the <code>debug</code> option, you would instead run the command:</p>
+<pre><code>python juice.py --enable-debug</code></pre>
 <h3>Juice Example</h3>
 <p>Here is an example of Juice in action:</p>
 <pre><code>// We only want the following line included in the output file

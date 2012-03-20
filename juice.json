@@ -4,6 +4,6 @@
         "use-prime": { "value": true, "help": "prints a prime number instead of 42" }
     },
     "files": [
-        { "filename": "sample.js", "output": "sample.min.js" }
+        { "filename": "src/sample.js", "output": "sample.min.js" }
     ]
 }
