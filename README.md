@@ -28,3 +28,7 @@
 /* @if debug */
 alert(some_value);
 /* @endif */</code></pre>
+<h3>Projects Using Juice</h3>
+<ul>
+  <li><a href="https://github.com/nathan-osman/StackTack">StackTack</a></li>
+</ul>
