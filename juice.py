@@ -162,7 +162,7 @@ class JuiceBuilder:
             # Check to see if building this file depends on a condition
             if 'condition' in src_file:
                 c = src_file['condition']
-                value = self.project['options'][c]['value']
+                value = self._is_option_set(c)
                 if c.startswith('!'):
                     value = not value
                 if value:
@@ -170,13 +170,10 @@ class JuiceBuilder:
             else:
                 self._build_file(src_file)
         print "\nBuild process completed without error."
-'''
+
 try:
     # Create the builder and build the project
     builder = JuiceBuilder()
     builder.build()
 except Exception as e:
-    print 'Fatal error: %s.' % e'''
-
-builder = JuiceBuilder()
-builder.build()
+    print 'Fatal error: %s.' % e
