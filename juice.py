@@ -125,12 +125,10 @@ class JuiceBuilder:
             output = stack.pop()['content'] + output
         stack.append({ 'type': FileStream.TokenContent, 'content': output, })
     
-    # Builds the specified file
-    def _build_file(self, src_file):
-        output_fn = 'out/%s' % (src_file['output'] if 'output' in src_file else src_file['filename'])
-        print 'Building "%s".' % output_fn
-        input  = FileStream(src_file['filename'])
-        stack = []
+    # Tokenizes and parses the specified file using the specified stack
+    def _parse_file(self, src_file, stack, nest_level):
+        print '%sBuilding "%s".' % ('  ' * nest_level, src_file,)
+        input = FileStream(src_file)
         for t in input:
             stack.append(t)
             if stack[-1]['type'] == FileStream.TokenCommand:
@@ -153,7 +151,14 @@ class JuiceBuilder:
                     elif not false_output == None:
                         stack.append(false_output)
                 elif cmd == 'include':
-                    stack.pop() # just ignore it for now
+                    c = stack.pop()
+                    self._parse_file(c['parameter'], stack, nest_level + 1)
+    
+    # Builds the specified file
+    def _build_file(self, src_file):
+        output_fn = 'out/%s' % (src_file['output'] if 'output' in src_file else src_file['filename'])
+        stack = []
+        self._parse_file(src_file['filename'], stack, 0)
         # Join and write the minified output
         output = ''
         for t in stack:
@@ -161,7 +166,7 @@ class JuiceBuilder:
             if not t['type'] == FileStream.TokenContent:
                 raise Exception('unexpected command "%s" encountered' % t['command'])
             output += t['content']
-        print 'Minifying "%s".' % output_fn
+        print 'Producing "%s".' % output_fn
         f = open(output_fn, 'w')
         f.write(self._minify_js_file(output))
         f.close()
