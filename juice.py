@@ -102,7 +102,7 @@ class JuiceBuilder:
     
     # Determines if the specified option is set
     def _is_option_set(self, option):
-        return self.project['options'][option]
+        return self.project['options'][option]['value']
     
     # Performs minification of the specified JS source file using Google's Closure compiler
     def _minify_js_file(self, input):
@@ -114,15 +114,45 @@ class JuiceBuilder:
                                       data=params).read())
         return json_response['compiledCode']
     
+    # Utility method that pops tokens off the stack until the specified command token is found
+    # This method also combines anything it finds along the way
+    def _pop_until(self, stack, commands):
+        output = ''
+        while not (stack[-1]['type'] == FileStream.TokenCommand and stack[-1]['command'] in commands):
+            output = stack.pop()['content'] + output
+        stack.append({ 'type': FileStream.TokenContent, 'content': output, })
+    
     # Builds the specified file
     def _build_file(self, src_file):
         output_fn = 'out/%s' % (src_file['output'] if 'output' in src_file else src_file['filename'])
         print 'Building "%s".' % output_fn
         input  = FileStream(src_file['filename'])
-        output = open(output_fn, 'w')
+        stack = []
         for t in input:
-            if t['type'] == FileStream.TokenContent:
-                output.write(t['content'])
+            stack.append(t)
+            if stack[-1]['type'] == FileStream.TokenCommand and stack[-1]['command'] == 'endif':
+                stack.pop()
+                self._pop_until(stack, ('if', 'else'))
+                true_output = stack.pop()
+                false_output = None
+                if stack[-1]['type'] == FileStream.TokenCommand and stack[-1]['command'] == 'else':
+                    stack.pop()
+                    self._pop_until(stack, ('if',))
+                    false_output = true_output
+                    true_output = stack.pop()
+                c = stack.pop()
+                if self._is_option_set(c['parameter']):
+                    stack.append(true_output)
+                elif not false_output == None:
+                    stack.append(false_output)
+        # Join and write the minified output
+        output = ''
+        for t in stack:
+            output += t['content']
+        print 'Minifying "%s".' % output_fn
+        f = open(output_fn, 'w')
+        f.write(self._minify_js_file(output))
+        f.close()
     
     # Builds the project
     def build(self):
@@ -140,10 +170,13 @@ class JuiceBuilder:
             else:
                 self._build_file(src_file)
         print "\nBuild process completed without error."
-
+'''
 try:
     # Create the builder and build the project
     builder = JuiceBuilder()
     builder.build()
 except Exception as e:
-    print 'Fatal error: "%s".' % e
+    print 'Fatal error: %s.' % e'''
+
+builder = JuiceBuilder()
+builder.build()

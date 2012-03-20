@@ -1,6 +1,7 @@
 {
     "options": {
-        "print-integer": { "value": false, "help": "prints an integer upon startup" }
+        "print-integer": { "value": false, "help": "prints an integer upon startup" },
+        "use-prime": { "value": true, "help": "prints a prime number instead of 42" }
     },
     "files": [
         { "filename": "sample.js", "output": "sample.min.js" }
