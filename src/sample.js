@@ -10,4 +10,11 @@
     
 /* @endif */
 
+// Juice's @include command is very flexible - it can quote and minify
+// the file that is being included prior to actually embedding it:
+
+/* @if embed-css */
+    var stylesheet = /* @include src/style.css quote minify */;
+/* @endif */
+
 alert("All done!");

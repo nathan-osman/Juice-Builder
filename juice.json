@@ -1,9 +1,11 @@
 {
     "options": {
         "debug": { "value": false, "help": "prints debug information while running" },
-        "use-math": { "value": true, "help": "performs some math calculations" }
+        "use-math": { "value": true, "help": "performs some math calculations" },
+        "embed-css": { "value": false, "help": "embeds the CSS in the JavaScript source" }
     },
     "files": [
-        { "filename": "src/sample.js", "output": "sample.min.js" }
+        { "filename": "src/sample.js", "output": "sample.min.js" },
+        { "filename": "src/style.css", "output": "sample.min.css", "condition": "!embed-css" }
     ]
 }

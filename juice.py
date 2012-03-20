@@ -32,8 +32,9 @@ class FileStream:
     TokenCommand = 1
     TokenContent = 2
     
-    # Precompiled regex that helps find the preprocessor definitions
+    # Precompiled regexs that helps find the preprocessor definitions and manipulate them
     command_regex = compile(r'/\*\s+@(\w+)(?:\s+(.+?))?\s+\*/')
+    split_regex   = compile(r'\s+')
     
     # Initializes the stream
     def __init__(self, filename):
@@ -57,7 +58,10 @@ class FileStream:
             return token
         elif m:
             self.pos += m.end()
-            return { 'type': self.TokenCommand, 'command': m.group(1), 'parameter': m.group(2), }
+            p = m.group(2)
+            if p:
+                p = self.split_regex.split(p)
+            return { 'type': self.TokenCommand, 'command': m.group(1), 'parameter': p, }
         else:
             token = { 'type': self.TokenContent, 'content': self.contents[self.pos:], }
             self.pos = len(self.contents)
@@ -69,8 +73,10 @@ class JuiceBuilder:
     # Valid commands
     commands = ['if', 'else', 'endif', 'include',]
     
-    # Precompiled regex for matching command line arguments
-    arg_regex = compile(r'^--(enable|disable)-(.*)$')
+    # Precompiled regular expressions
+    arg_regex     = compile(r'^--(enable|disable)-(.*)$')
+    comment_regex = compile(r'\s*/\*.*?\*/\s*', DOTALL)
+    ws_regex      = compile(r'\s+')
     
     # Initializes the builder
     def __init__(self):
@@ -117,13 +123,34 @@ class JuiceBuilder:
                                       data=params).read())
         return json_response['compiledCode']
     
-    # Utility method that pops tokens off the stack until the specified command token is found
-    # This method also combines anything it finds along the way
-    def _pop_until(self, stack, commands):
+    # Performs basic RegEx based minification of CSS files
+    def _minify_css_file(self, input):
+        # Remove comments and unnecessary spaces
+        output = self.comment_regex.sub('', input)
+        return self.ws_regex.sub(' ', output)
+    
+    # Minifies the specified source file
+    def _minify_file(self, input, filename):
+        if filename.endswith('.js'):
+            return self._minify_js_file(input)
+        elif filename.endswith('.css'):
+            return self._minify_css_file(input)
+        else:
+            return input # Passthru since we don't know the type
+    
+    # This method combines content tokens in the specified list into a single token
+    def _combine_tokens(self, tokens):
         output = ''
+        for t in tokens:
+            output += t['content']
+        return output
+    
+    # Utility method that pops tokens off the stack until the specified command token is found
+    def _pop_until(self, stack, commands):
+        tokens = []
         while not (stack[-1]['type'] == FileStream.TokenCommand and stack[-1]['command'] in commands):
-            output = stack.pop()['content'] + output
-        stack.append({ 'type': FileStream.TokenContent, 'content': output, })
+            tokens.insert(0, stack.pop())
+        stack.append({ 'type': FileStream.TokenContent, 'content': self._combine_tokens(tokens) })
     
     # Tokenizes and parses the specified file using the specified stack
     def _parse_file(self, src_file, stack, nest_level):
@@ -137,7 +164,7 @@ class JuiceBuilder:
                     raise Exception('Command "%s" not recognized.' % cmd)
                 if cmd == 'endif':
                     stack.pop() # discard the endif
-                    self._pop_until(stack, ('if', 'else'))
+                    self._pop_until(stack, ('if', 'else',))
                     true_output = stack.pop()
                     false_output = None
                     if stack[-1]['type'] == FileStream.TokenCommand and stack[-1]['command'] == 'else':
@@ -146,13 +173,27 @@ class JuiceBuilder:
                         false_output = true_output
                         true_output = stack.pop()
                     c = stack.pop()
-                    if self._is_option_set(c['parameter']):
+                    if self._is_option_set(c['parameter'][0]):
                         stack.append(true_output)
                     elif not false_output == None:
                         stack.append(false_output)
                 elif cmd == 'include':
-                    c = stack.pop()
-                    self._parse_file(c['parameter'], stack, nest_level + 1)
+                    inc = stack.pop()
+                    fn = inc['parameter'][0]
+                    minify = 'minify' in inc['parameter'][1:]
+                    quote  = 'quote' in inc['parameter'][1:]
+                    # Create a new stack for the included file
+                    new_stack = []
+                    self._parse_file(fn, new_stack, nest_level + 1)
+                    if minify or quote:
+                        c = self._combine_tokens(new_stack)
+                        if minify:
+                            c = self._minify_file(c, fn)
+                        if quote:
+                            c = '"' + c + '"'
+                        stack.append({ 'type':  FileStream.TokenContent, 'content': c })
+                    else:
+                        stack.extend(new_stack)
     
     # Builds the specified file
     def _build_file(self, src_file):
@@ -168,7 +209,7 @@ class JuiceBuilder:
             output += t['content']
         print 'Producing "%s".' % output_fn
         f = open(output_fn, 'w')
-        f.write(self._minify_js_file(output))
+        f.write(self._minify_file(output, output_fn))
         f.close()
     
     # Builds the project
@@ -179,9 +220,10 @@ class JuiceBuilder:
             # Check to see if building this file depends on a condition
             if 'condition' in src_file:
                 c = src_file['condition']
-                value = self._is_option_set(c)
                 if c.startswith('!'):
-                    value = not value
+                    value = not self._is_option_set(c[1:])
+                else:
+                    value = self._is_option_set(c)
                 if value:
                     self._build_file(src_file)
             else:
