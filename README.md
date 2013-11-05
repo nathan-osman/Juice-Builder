@@ -31,4 +31,5 @@ alert(some_value);
 <h3>Projects Using Juice</h3>
 <ul>
   <li><a href="https://github.com/nathan-osman/StackTack">StackTack</a></li>
+  <li><a href="https://github.com/nathan-osman/Stack-Exchange-Post-Editor">Stack Exchange Post Editor</li>
 </ul>
