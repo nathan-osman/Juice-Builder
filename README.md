@@ -17,7 +17,7 @@ A sample `juice.json` file looks like this:
             "debug": { "value": false, "help": "enable debug messages" }
         },
         "files": [
-            { "filename": "src/sample.js", "output": "sample.min.js" }
+            { "filename": "src/sample.js", "output": "sample.min.js", "compress": true }
         ]
     }
 

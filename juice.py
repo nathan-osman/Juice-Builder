@@ -209,7 +209,7 @@ class JuiceBuilder:
             output += t['content']
         print 'Producing "%s".' % output_fn
         f = open(output_fn, 'w')
-        f.write(self._minify_file(output, output_fn))
+        f.write(self._minify_file(output, output_fn) if 'compress' in src_file and src_file['compress'] else output)
         f.close()
     
     # Builds the project

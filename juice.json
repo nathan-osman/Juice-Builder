@@ -5,7 +5,7 @@
         "embed-css": { "value": false, "help": "embeds the CSS in the JavaScript source" }
     },
     "files": [
-        { "filename": "src/sample.js", "output": "sample.min.js" },
-        { "filename": "src/style.css", "output": "sample.min.css", "condition": "!embed-css" }
+        { "filename": "src/sample.js", "output": "sample.min.js", "compress": true },
+        { "filename": "src/style.css", "output": "sample.min.css", "compress": true, "condition": "!embed-css" }
     ]
 }
