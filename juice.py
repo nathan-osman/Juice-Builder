@@ -179,7 +179,7 @@ class JuiceBuilder:
                         stack.append(false_output)
                 elif cmd == 'include':
                     inc = stack.pop()
-                    fn = inc['parameter'][0]
+                    fn = '%s/%s' % (path.dirname(src_file), inc['parameter'][0],)
                     minify = 'minify' in inc['parameter'][1:]
                     quote  = 'quote' in inc['parameter'][1:]
                     # Create a new stack for the included file
